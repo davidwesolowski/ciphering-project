@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ButtonBar?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane layoutX="3.0" prefHeight="400.0" prefWidth="634.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="bsk.FileController">
+   <top>
+      <TableView fx:id="fileTable" prefHeight="212.0" prefWidth="634.0" BorderPane.alignment="CENTER">
+        <columns>
+          <TableColumn fx:id="fileColumn" prefWidth="198.4000244140625" text="File" />
+            <TableColumn fx:id="progressColumn" minWidth="0.0" prefWidth="202.39996337890625" text="Progress" />
+            <TableColumn fx:id="statusColumn" prefWidth="231.99997558593748" text="Status" />
+        </columns>
+      </TableView>
+   </top>
+   <bottom>
+      <ButtonBar prefHeight="40.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+        <buttons>
+            <ChoiceBox fx:id="choiceBoxOpt" prefWidth="150.0" />
+            <ChoiceBox fx:id="choiceBoxMode" prefWidth="150.0" />
+          <Button mnemonicParsing="false" onAction="#chooseFile" text="Choose file">
+               <font>
+                  <Font size="17.0" />
+               </font>
+            </Button>
+            <Button mnemonicParsing="false" onAction="#sendFile" text="Send">
+               <font>
+                  <Font size="17.0" />
+               </font>
+            </Button>
+        </buttons>
+      </ButtonBar>
+   </bottom>
+   <center>
+      <TextField fx:id="messageField" alignment="TOP_LEFT" prefHeight="146.0" prefWidth="634.0" BorderPane.alignment="CENTER" />
+   </center>
+</BorderPane>
