@@ -5,6 +5,9 @@
  */
 package bsk;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
@@ -45,6 +48,10 @@ public abstract class AbstractCipher
             {
                 byte[] iv = { 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
                 IvParameterSpec ivspec = new IvParameterSpec(iv);
+                /*if (mode.equals("CFB") || mode.equals("OFB"))
+                {
+                    cipher.init(cipherMode, key, ivspec);
+                }*/
                 cipher.init(cipherMode, key, ivspec);
             }
             else
@@ -69,6 +76,40 @@ public abstract class AbstractCipher
         {
             System.out.println(e);
         }
+        return null;
+    }
+    
+    public byte[] doCipheringFile(byte[] inputBytes, String mode, String method, int cipherMode, SecretKey key)
+    {
+        try
+            {
+                /*FileInputStream inputStream = new FileInputStream(input);
+                byte [] inputBytes = new byte[(int) input.length()];
+                inputStream.read(inputBytes);*/
+                Cipher cipher;
+                cipher = Cipher.getInstance(method);
+                 if (!mode.equals( "ECB"))
+                {
+                    byte[] iv = { 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                    IvParameterSpec ivspec = new IvParameterSpec(iv);
+                    cipher.init(cipherMode, key, ivspec);
+                }
+                 else
+                 {
+                       cipher.init(cipherMode, key);
+                 }
+                byte [] outputBytes = cipher.doFinal(inputBytes);
+                
+                //FileOutputStream outputStream = new FileOutputStream(output);
+                //outputStream.write(outputBytes);
+                //inputStream.close();
+                //outputStream.close();
+                return outputBytes;
+            }
+            catch (Exception e)
+            {
+                System.out.println(e);
+            }
         return null;
     }
     

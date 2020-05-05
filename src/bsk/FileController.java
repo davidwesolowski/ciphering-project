@@ -8,6 +8,8 @@ package bsk;
 import java.awt.MouseInfo;
 import java.awt.PointerInfo;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -81,6 +83,7 @@ public class FileController extends AbstractCipher implements Initializable
     private ConnectionThread connection = new ConnectionThread();
     private Socket socket;
     private String password;
+    private FileJob currentFile;
     
     public void setPassword(String psw)
     {
@@ -127,14 +130,13 @@ public class FileController extends AbstractCipher implements Initializable
             
             Thread thread = new Thread(connection);
             thread.start();
-            socket = new Socket("localhost", 50505);
+            //this.socket = new Socket("localhost", 50505);
         }
         catch (Exception e)
         {
             System.out.println(e);
         }
 }
-    
     
     public PrivateKey loadPrivateKey()
     {
@@ -167,6 +169,7 @@ public class FileController extends AbstractCipher implements Initializable
         List<File> selectedFile = fileChooser.showOpenMultipleDialog(null);
         if (selectedFile == null)
             return;
+        this.currentFile = new FileJob(selectedFile.get(0));
         for(File f:selectedFile)
         {
             jobs.add(new FileJob(f));
@@ -195,21 +198,54 @@ public class FileController extends AbstractCipher implements Initializable
         
         if (choiceBoxOpt.getSelectionModel().getSelectedItem() == "File")
         {
-             jobs.forEach((job) -> {
+             /*jobs.forEach((job) -> {
                  if (job.getStatus() != "done")
                      cipherFile(job);
-             });
+             });*/
+            try (Socket socket = new Socket("localhost", 50505);
+                    DataOutputStream output = new DataOutputStream(socket.getOutputStream()))
+             {
+                 msgToSend += "file" + "\n";
+                 msgToSend += this.currentFile.getFile().getName() + "\n";
+                 if (currentFile.getFile().length() < 8192)
+                {
+                    
+                    msgToSend += currentFile.getFile().length() + "\n";
+                    //output.write(msgToSend.getBytes());
+                    output.writeUTF(msgToSend);
+                    System.out.println("Wysylanie naglowka");
+                    FileInputStream inputStream = new FileInputStream(this.currentFile.getFile());
+                    byte [] inputBytes = new byte[(int) this.currentFile.getFile().length()];
+                    inputStream.read(inputBytes);
+                    
+                    byte[] cipheredFile = cipherFile(inputBytes, key);
+                    //System.out.println("przed" + new String(cipheredFile));
+                    output.write(cipheredFile);
+                    System.out.println("Wysylanie pliku");
+                }
+                else
+                {
+                    int amountToSend = (int) Math.ceil(currentFile.getFile().length() / 8192) ;
+                    
+                }
+
+             }
+             catch (Exception e)
+             {
+                 System.out.println(e);
+             }
         }
         else
         {
-            try (OutputStream output = socket.getOutputStream())
+            try (Socket socket = new Socket("localhost", 50505);
+                    DataOutputStream output = new DataOutputStream(socket.getOutputStream()))
             {
                 String encryptedMsg = cipherMsg(key);
                 msgToSend += "message" + "\n";
-                msgToSend += encryptedMsg;
-                output.write(msgToSend.getBytes());
+                output.writeUTF(msgToSend);
+                String encrMsgToSend = encryptedMsg;
+                output.write(encrMsgToSend.getBytes());
                 System.out.println("Wysylanie");
-                
             }
             catch (Exception e)
             {
@@ -321,38 +357,6 @@ public class FileController extends AbstractCipher implements Initializable
         }
     }
     
-    public void doCipheringFile(File input, File output, String mode, String method, int cipherMode, SecretKey key)
-    {
-        try
-            {
-                FileInputStream inputStream = new FileInputStream(input);
-                byte [] inputBytes = new byte[(int) input.length()];
-                inputStream.read(inputBytes);
-                Cipher cipher;
-                cipher = Cipher.getInstance(method);
-                 if (mode != "ECB")
-                {
-                    byte[] iv = { 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-                    IvParameterSpec ivspec = new IvParameterSpec(iv);
-                    cipher.init(cipherMode, key, ivspec);
-                }
-                 else
-                 {
-                       cipher.init(cipherMode, key);
-                 }
-                byte [] outputBytes = cipher.doFinal(inputBytes);
-                
-                FileOutputStream outputStream = new FileOutputStream(output);
-                outputStream.write(outputBytes);
-                inputStream.close();
-                outputStream.close();
-            }
-            catch (Exception e)
-            {
-                System.out.println(e);
-            }
-    }
-    
     public String cipherMsg(SecretKey key)
     {
         String mode = choiceBoxMode.getSelectionModel().getSelectedItem();
@@ -380,35 +384,32 @@ public class FileController extends AbstractCipher implements Initializable
         return encryptedMsg;
     }
     
-    public void cipherFile(FileJob job)
+    public byte[] cipherFile(byte[] input, SecretKey key)
     {
         String mode = choiceBoxMode.getSelectionModel().getSelectedItem();
-        SecretKey key = sessionKeyGenerator();
-        int i = job.getFile().getName().lastIndexOf(".");
-        String extension =job.getFile().getName().substring(i+1);
-        String pathName = job.getFile().getName()+"."+extension;
-        File output = new File(pathName);
-        String pathName2 =  "de"+job.getFile().getName()+"."+extension;
-        File outputDecrypted = new File(pathName2);
+        //int i = job.getFile().getName().lastIndexOf(".");
+        //String extension =job.getFile().getName().substring(i+1);
+        //String pathName = job.getFile().getName()+"."+extension;
+        //File output = new File(pathName);
+        //String pathName2 =  "de"+job.getFile().getName()+"."+extension;
+        //File outputDecrypted = new File(pathName2);
+        byte result[] = null;
         switch (mode)
         {
             case FileJob.ECB:
-               doCipheringFile(job.getFile(), output, mode, FileJob.ECB_METHOD, Cipher.ENCRYPT_MODE, key);                  
-               doCipheringFile(output, outputDecrypted, mode, FileJob.ECB_METHOD, Cipher.DECRYPT_MODE, key);
+               result = doCipheringFile(input, mode, FileJob.ECB_METHOD, Cipher.ENCRYPT_MODE, key);                  
                 break;
             case FileJob.CBC:
-                doCipheringFile(job.getFile(), output, mode, FileJob.CBC_METHOD, Cipher.ENCRYPT_MODE, key);
-                doCipheringFile(output, outputDecrypted, mode, FileJob.CBC_METHOD, Cipher.DECRYPT_MODE, key);
+                result = doCipheringFile(input, mode, FileJob.CBC_METHOD, Cipher.ENCRYPT_MODE, key);
                 break;
             case FileJob.CFB:
-                doCipheringFile(job.getFile(), output, mode, FileJob.CFB_METHOD, Cipher.ENCRYPT_MODE, key);
-                doCipheringFile(output, outputDecrypted, mode, FileJob.CFB_METHOD, Cipher.DECRYPT_MODE, key);
+                result =  doCipheringFile(input, mode, FileJob.CFB_METHOD, Cipher.ENCRYPT_MODE, key);
                 break;
             case FileJob.OFB:
-                 doCipheringFile(job.getFile(), output, mode, FileJob.OFB_METHOD, Cipher.ENCRYPT_MODE, key);
-                 doCipheringFile(output, outputDecrypted, mode, FileJob.OFB_METHOD, Cipher.DECRYPT_MODE, key);
+                 result = doCipheringFile(input, mode, FileJob.OFB_METHOD, Cipher.ENCRYPT_MODE, key);
                 break;
         }
-        Platform.runLater(() -> job.setStatus(FileJob.STATUS_DONE));
+        //Platform.runLater(() -> job.setStatus(FileJob.STATUS_DONE));
+        return result;
     }
 }

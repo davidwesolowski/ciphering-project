@@ -28,8 +28,7 @@ public class FileJob
     public static final String CBC_METHOD = "AES/CBC/PKCS5Padding";
     public static final String CFB_METHOD = "AES/CFB/PKCS5Padding";
     public static final String OFB_METHOD = "AES/OFB/PKCS5Padding";
-
-
+    
     private File convertFile;
     private SimpleStringProperty fileName;
     private SimpleStringProperty mode;
