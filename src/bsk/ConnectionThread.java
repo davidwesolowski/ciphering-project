@@ -44,7 +44,7 @@ import javax.crypto.spec.SecretKeySpec;
 public class ConnectionThread extends AbstractCipher implements Runnable 
 {
     private Socket socket;
-    private static int port = 50505;
+    private static int port = 50506;
     private String message;
     private String password = new String("");
     
@@ -153,6 +153,7 @@ public class ConnectionThread extends AbstractCipher implements Runnable
             while (true)
             {
                   socket = server.accept();
+                  DataInputStream dis = new DataInputStream(socket.getInputStream());
                   Platform.runLater(() -> {
                     String psw = createDialog();
                     setPassword(psw);
@@ -162,8 +163,8 @@ public class ConnectionThread extends AbstractCipher implements Runnable
                   {
                       System.out.print("");
                   }
-
-                  DataInputStream dis = new DataInputStream(socket.getInputStream());
+                  
+                   //DataInputStream dis = new DataInputStream(socket.getInputStream());
                   //BufferedReader reader = new BufferedReader(new InputStreamReader(dis));
                   //System.out.println(dis.available());
                   String[] recv = dis.readUTF().split("\n");
@@ -183,22 +184,42 @@ public class ConnectionThread extends AbstractCipher implements Runnable
                   {              
                       String fileName = recv[3];
                       int len = Integer.parseInt(recv[4]);
-                      if (len < 8192)
+                      int max = 65536;
+                      if (len < max)
                       {
                           int count = dis.available();
-                          byte[] bs = new byte[count];
+                          byte[] bs = new byte[len];
                           dis.read(bs);
                           byte[] decipheredFileByte = decipherFile(bs, mode, secretKey);
                           File decipheredFile = new File(fileName);
                           FileOutputStream out = new FileOutputStream(decipheredFile);
-                          out.write(decipheredFileByte);
+                          out.write(decipheredFileByte); 
                           out.close();
                       }
                       else
                       {
-                          
+                          int constLen = max;
+                          //int amountToReceive = (int) Math.ceil(len / constLen);
+                          int amountToReceive = (len /max) + 1;
+                          byte[] recvFile = new byte[len];
+                          int start = 0;
+                          while (amountToReceive > 0)
+                          {
+                              if (amountToReceive == 1)
+                                constLen = len - start;
+                              dis.read(recvFile, start, constLen);
+                              //System.out.println("odbieram " + amountToReceive );
+                              start += constLen;
+                              amountToReceive--;
+                          }
+                          byte[] decipheredFileByte = decipherFile(recvFile, mode, secretKey);
+                          File decipheredFile = new File(fileName);
+                          FileOutputStream out = new FileOutputStream(decipheredFile);
+                          out.write(decipheredFileByte);
+                          //out.write(recvFile);
+                          out.close();
                       }
-                      
+                      setPassword("");
                   }
                   else
                   {              

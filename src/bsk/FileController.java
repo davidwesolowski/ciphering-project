@@ -202,33 +202,41 @@ public class FileController extends AbstractCipher implements Initializable
                  if (job.getStatus() != "done")
                      cipherFile(job);
              });*/
-            try (Socket socket = new Socket("localhost", 50505);
+            try (Socket socket = new Socket("localhost", 50506);
                     DataOutputStream output = new DataOutputStream(socket.getOutputStream()))
              {
                  msgToSend += "file" + "\n";
                  msgToSend += this.currentFile.getFile().getName() + "\n";
-                 if (currentFile.getFile().length() < 8192)
+                 int max = 65536;
+                 FileInputStream inputStream = new FileInputStream(this.currentFile.getFile());
+                 byte [] inputBytes = new byte[(int) this.currentFile.getFile().length()];
+                 inputStream.read(inputBytes);
+                 byte[] cipheredFile = cipherFile(inputBytes, key);
+                 msgToSend += cipheredFile.length;
+                 output.writeUTF(msgToSend);
+                 int fileSize = cipheredFile.length;
+
+                 if (fileSize < max)
                 {
-                    
-                    msgToSend += currentFile.getFile().length() + "\n";
-                    //output.write(msgToSend.getBytes());
-                    output.writeUTF(msgToSend);
-                    System.out.println("Wysylanie naglowka");
-                    FileInputStream inputStream = new FileInputStream(this.currentFile.getFile());
-                    byte [] inputBytes = new byte[(int) this.currentFile.getFile().length()];
-                    inputStream.read(inputBytes);
-                    
-                    byte[] cipheredFile = cipherFile(inputBytes, key);
-                    //System.out.println("przed" + new String(cipheredFile));
                     output.write(cipheredFile);
-                    System.out.println("Wysylanie pliku");
                 }
                 else
                 {
-                    int amountToSend = (int) Math.ceil(currentFile.getFile().length() / 8192) ;
-                    
+                    int amountToSend = (fileSize / max) + 1 ;
+                    //int fileSize = inputBytes.length;
+                    int start = 0;
+                    int len = max;
+                    while (amountToSend > 0)
+                    {
+                            if (amountToSend == 1)
+                                len = fileSize - start;
+                            output.write(cipheredFile, start, len);
+                            System.out.println("wysyłam " + amountToSend );
+                            //output.write(inputBytes, start, len);
+                            start += len;
+                            amountToSend--;
+                    }
                 }
-
              }
              catch (Exception e)
              {
@@ -237,7 +245,7 @@ public class FileController extends AbstractCipher implements Initializable
         }
         else
         {
-            try (Socket socket = new Socket("localhost", 50505);
+            try (Socket socket = new Socket("localhost", 50506);
                     DataOutputStream output = new DataOutputStream(socket.getOutputStream()))
             {
                 String encryptedMsg = cipherMsg(key);
@@ -245,6 +253,7 @@ public class FileController extends AbstractCipher implements Initializable
                 output.writeUTF(msgToSend);
                 String encrMsgToSend = encryptedMsg;
                 output.write(encrMsgToSend.getBytes());
+                output.close();
                 System.out.println("Wysylanie");
             }
             catch (Exception e)
