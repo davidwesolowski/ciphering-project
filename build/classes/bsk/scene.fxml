@@ -22,14 +22,19 @@
    <bottom>
       <ButtonBar prefHeight="40.0" prefWidth="200.0" BorderPane.alignment="CENTER">
         <buttons>
-            <ChoiceBox fx:id="choiceBoxOpt" prefWidth="150.0" />
-            <ChoiceBox fx:id="choiceBoxMode" prefWidth="150.0" />
-          <Button mnemonicParsing="false" onAction="#chooseFile" text="Choose file">
+            <Button mnemonicParsing="false" onAction="#initKeys" style="-fx-max-width: 30;" text="Init">
                <font>
                   <Font size="17.0" />
                </font>
             </Button>
-            <Button mnemonicParsing="false" onAction="#sendFile" text="Send">
+            <ChoiceBox fx:id="choiceBoxOpt" prefWidth="150.0" style="-fx-max-height: 50;" value="Type" />
+            <ChoiceBox fx:id="choiceBoxMode" prefWidth="150.0" style="-fx-max-height: 50;" value="Mode" />
+          <Button mnemonicParsing="false" onAction="#chooseFile" style="-fx-max-width: 120;" text="Choose file">
+               <font>
+                  <Font size="17.0" />
+               </font>
+            </Button>
+            <Button mnemonicParsing="false" onAction="#sendFile" prefHeight="31.0" style="-fx-max-width: 30;" text="Send">
                <font>
                   <Font size="17.0" />
                </font>

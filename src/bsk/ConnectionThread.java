@@ -5,33 +5,22 @@
  */
 package bsk;
 
-import java.awt.MouseInfo;
-import java.awt.PointerInfo;
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.math.BigInteger;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyFactory;
-import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
-import java.util.Random;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -95,12 +84,6 @@ public class ConnectionThread extends AbstractCipher implements Runnable
     
     public byte[] decipherFile(byte[] output, String mode, SecretKey key)
     {
-        //int i = job.getFile().getName().lastIndexOf(".");
-        //String extension =job.getFile().getName().substring(i+1);
-        //String pathName = job.getFile().getName()+"."+extension;
-        //File output = new File(pathName);
-        //String pathName2 =  "de"+job.getFile().getName()+"."+extension;
-        //File outputDecrypted = new File(pathName2);
         byte result[] = null;
         switch (mode)
         {
@@ -117,7 +100,6 @@ public class ConnectionThread extends AbstractCipher implements Runnable
                  result = doCipheringFile(output, mode, FileJob.OFB_METHOD, Cipher.DECRYPT_MODE, key);
                 break;
         }
-        //Platform.runLater(() -> job.setStatus(FileJob.STATUS_DONE));
         return result;
     }
     
@@ -146,27 +128,42 @@ public class ConnectionThread extends AbstractCipher implements Runnable
         return null;
     }
    
+    public String randomText(int n)
+    {
+        String AlphaNumericString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvxyz"; 
+        StringBuilder str = new StringBuilder("");
+        
+        for (int i=0; i< n; i++)
+        {
+            if (i%200 == 0)
+                str.append("\n");
+            int index = (int) (AlphaNumericString.length()*Math.random());
+            str.append(AlphaNumericString.charAt(index));
+        }
+        return str.toString();
+    }
+    
      @Override 
     public void run()
     {
         try (ServerSocket server = new ServerSocket(port)) {
+            
+            Platform.runLater(() -> {
+                String psw = createDialog();
+                setPassword(psw);
+            });
+            
+            while(this.password.equals(""))
+            {
+                System.out.print("");
+            }
+            
             while (true)
             {
                   socket = server.accept();
+                  Thread.sleep(1000);
                   DataInputStream dis = new DataInputStream(socket.getInputStream());
-                  Platform.runLater(() -> {
-                    String psw = createDialog();
-                    setPassword(psw);
-                  });
-                  
-                  while(this.password.equals(""))
-                  {
-                      System.out.print("");
-                  }
-                  
-                   //DataInputStream dis = new DataInputStream(socket.getInputStream());
-                  //BufferedReader reader = new BufferedReader(new InputStreamReader(dis));
-                  //System.out.println(dis.available());
+
                   String[] recv = dis.readUTF().split("\n");
                   String mode = recv[0];
                   String s = recv[1];
@@ -175,67 +172,92 @@ public class ConnectionThread extends AbstractCipher implements Runnable
                   String type = recv[2];
                   
                   PrivateKey pvt = loadPrivateKey();
-                  Cipher cipherKey = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-                  cipherKey.init(Cipher.DECRYPT_MODE, pvt);
-                  byte [] decryptedByteKey =cipherKey.doFinal(key);
-                  SecretKey secretKey = new SecretKeySpec(decryptedByteKey, "AES");
-                  
-                  if (type.equals("file"))
-                  {              
-                      String fileName = recv[3];
-                      int len = Integer.parseInt(recv[4]);
-                      int max = 65536;
-                      if (len < max)
+
+                  if (pvt == null)
+                  {
+                      if (type.equals("file"))
                       {
-                          int count = dis.available();
-                          byte[] bs = new byte[len];
-                          dis.read(bs);
-                          byte[] decipheredFileByte = decipherFile(bs, mode, secretKey);
-                          File decipheredFile = new File(fileName);
-                          FileOutputStream out = new FileOutputStream(decipheredFile);
-                          out.write(decipheredFileByte); 
-                          out.close();
-                      }
-                      else
-                      {
-                          int constLen = max;
-                          //int amountToReceive = (int) Math.ceil(len / constLen);
-                          int amountToReceive = (len /max) + 1;
+                          String fileName = recv[3];
+                          int len = Integer.parseInt(recv[4]);
+                          int constLen = 65536;
+                          int amountToReceive = (len / constLen) + 1;
                           byte[] recvFile = new byte[len];
                           int start = 0;
                           while (amountToReceive > 0)
-                          {
-                              if (amountToReceive == 1)
+                          { 
+                             if (amountToReceive == 1)
                                 constLen = len - start;
-                              dis.read(recvFile, start, constLen);
-                              //System.out.println("odbieram " + amountToReceive );
-                              start += constLen;
-                              amountToReceive--;
+                                dis.read(recvFile, start, constLen);
+                                start += constLen;
+                                amountToReceive--;
                           }
-                          byte[] decipheredFileByte = decipherFile(recvFile, mode, secretKey);
-                          File decipheredFile = new File(fileName);
-                          FileOutputStream out = new FileOutputStream(decipheredFile);
-                          out.write(decipheredFileByte);
-                          //out.write(recvFile);
+                          File f = new File(fileName);
+                          FileOutputStream out = new FileOutputStream(f);
+                          String text = randomText(5000);
+                          out.write(text.getBytes());
                           out.close();
+                          dis.close();
                       }
-                      setPassword("");
-                  }
-                  else
-                  {              
-                      int count = dis.available();
-                      byte[] bs = new byte[count];
-                      dis.read(bs);
-                      String msg = new String(bs);
-                      /*while((line = reader.readLine()) != null)
+                      else 
                       {
-                          //counter += line.getBytes().length;
-                          msg += line;
-                      }*/
-                      String decyptedMsg = decipherMsg(msg, mode, secretKey);
-                      Platform.runLater(() ->  alertReceiveMessage(decyptedMsg));
-                      setPassword("");
+                          String text = randomText(100);
+                          Platform.runLater(() ->  alertReceiveMessage(text));
+                      }
                   }
+                  else 
+                  {
+                        Cipher cipherKey = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+                        cipherKey.init(Cipher.DECRYPT_MODE, pvt);
+                        byte [] decryptedByteKey =cipherKey.doFinal(key);
+                        SecretKey secretKey = new SecretKeySpec(decryptedByteKey, "AES");
+
+                        if (type.equals("file"))
+                        {              
+                            String fileName = recv[3];
+                            int len = Integer.parseInt(recv[4]);
+                            int max = 65536;
+                            if (len < max)
+                            {
+                                byte[] bs = new byte[len];
+                                dis.read(bs);
+                                byte[] decipheredFileByte = decipherFile(bs, mode, secretKey);
+                                File decipheredFile = new File(fileName);
+                                FileOutputStream out = new FileOutputStream(decipheredFile);
+                                out.write(decipheredFileByte); 
+                                out.close();
+                            }
+                            else
+                            {
+                                int constLen = max;
+                                int amountToReceive = (len /max) + 1;
+                                byte[] recvFile = new byte[len];
+                                int start = 0;
+                                while (amountToReceive > 0)
+                                {
+                                    if (amountToReceive == 1)
+                                      constLen = len - start;
+                                    dis.read(recvFile, start, constLen);
+                                    start += constLen;
+                                    amountToReceive--;
+                                    Thread.sleep(10);
+                                }
+                                byte[] decipheredFileByte = decipherFile(recvFile, mode, secretKey);
+                                File decipheredFile = new File(fileName);
+                                FileOutputStream out = new FileOutputStream(decipheredFile);
+                                out.write(decipheredFileByte);
+                                out.close();
+                            }
+                        }
+                        else
+                        {              
+                            int count = dis.available();
+                            byte[] bs = new byte[count];
+                            dis.read(bs);
+                            String msg = new String(bs);
+                            String decyptedMsg = decipherMsg(msg, mode, secretKey);
+                            Platform.runLater(() ->  alertReceiveMessage(decyptedMsg));
+                        }
+                  } 
             }
         }
         catch (Exception e) {

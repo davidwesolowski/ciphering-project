@@ -26,8 +26,8 @@ public class FileJob
     public static final String OFB = "OFB";
     public static final String ECB_METHOD = "AES/ECB/PKCS5Padding";
     public static final String CBC_METHOD = "AES/CBC/PKCS5Padding";
-    public static final String CFB_METHOD = "AES/CFB/PKCS5Padding";
-    public static final String OFB_METHOD = "AES/OFB/PKCS5Padding";
+    public static final String CFB_METHOD = "AES/CFB16/PKCS5Padding";
+    public static final String OFB_METHOD = "AES/OFB16/PKCS5Padding";
     
     private File convertFile;
     private SimpleStringProperty fileName;
@@ -51,10 +51,6 @@ public class FileJob
         return convertFile;
     }
 
-    /*public SimpleStringProperty getMessageProperty()
-    {
-        return this.message;
-    }*/
 
     public SimpleStringProperty getFileNameProperty()
     {

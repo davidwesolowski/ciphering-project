@@ -29,9 +29,9 @@ public abstract class AbstractCipher
     
     public String createDialog()
     {
-        TextInputDialog td = new TextInputDialog("");
-        td.setHeaderText("Enter a password");
-        Optional<String> result = td.showAndWait();
+        DialogPassword dPwd = new DialogPassword();
+        dPwd.setHeaderText("Enter a password");
+        Optional<String> result = dPwd.showAndWait();
         if (result.isPresent())
         {
            return result.get();
@@ -48,10 +48,6 @@ public abstract class AbstractCipher
             {
                 byte[] iv = { 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
                 IvParameterSpec ivspec = new IvParameterSpec(iv);
-                /*if (mode.equals("CFB") || mode.equals("OFB"))
-                {
-                    cipher.init(cipherMode, key, ivspec);
-                }*/
                 cipher.init(cipherMode, key, ivspec);
             }
             else
@@ -83,9 +79,6 @@ public abstract class AbstractCipher
     {
         try
             {
-                /*FileInputStream inputStream = new FileInputStream(input);
-                byte [] inputBytes = new byte[(int) input.length()];
-                inputStream.read(inputBytes);*/
                 Cipher cipher;
                 cipher = Cipher.getInstance(method);
                  if (!mode.equals( "ECB"))
@@ -100,10 +93,6 @@ public abstract class AbstractCipher
                  }
                 byte [] outputBytes = cipher.doFinal(inputBytes);
                 
-                //FileOutputStream outputStream = new FileOutputStream(output);
-                //outputStream.write(outputBytes);
-                //inputStream.close();
-                //outputStream.close();
                 return outputBytes;
             }
             catch (Exception e)
